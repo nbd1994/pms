@@ -200,75 +200,86 @@ function fillForm(p = null) {
 }
 
 function wireRowActions() {
-    qsa('[data-edit]').forEach(btn => {
-        btn.onclick = () => {
-            const tr = btn.closest('tr');
-            const id = tr.dataset.id;
-            fillForm({
-                id,
-                name: qs('[data-view="name"]', tr).textContent.trim(),
-                price: qs('[data-view="price"]', tr).textContent.trim(),
-                category_id: (__CATEGORIES__ || []).find(c => c.name === qs('[data-view="category"]', tr).textContent.trim())?.id ?? '',
-                stock: qs('[data-view="stock"]', tr).textContent.trim(),
-                status: qs('[data-view="status"]', tr).textContent.trim(),
-            });
-            openModal('productModal');
-        };
-    });
-    qsa('[data-delete]').forEach(btn => {
-        btn.onclick = () => {
-            const tr = btn.closest('tr');
-            state.deleteId = tr.dataset.id;
-            openModal('confirmModal');
-        };
-    });
-    qsa('[data-inline-edit]').forEach(btn => {
-        btn.onclick = () => {
-            const tr = btn.closest('tr');
-            tr.classList.add('row-edit');
-            qs('[data-actions]', tr).style.display = 'none';
-            const form = qs('[data-inline-form]', tr);
-            form.style.display = 'inline-flex';
-            qs('[name="name"]', form).focus();
-            const cancel = qs('[data-inline-cancel]', form);
-            const save = qs('[data-inline-save]', form);
-            const err = qs('[data-inline-error]', form);
-            cancel.onclick = (e) => {
-                e.preventDefault();
-                err.textContent = '';
-                form.style.display = 'none';
-                qs('[data-actions]', tr).style.display = '';
-                tr.classList.remove('row-edit');
-            };
-            save.onclick = async (e) => {
-                e.preventDefault();
-                err.textContent = '';
-                const fd = new FormData(form);
-                fd.append('_method', 'PUT');
-                const res = await fetch(`/products/${tr.dataset.id}`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' },
-                    body: fd
-                });
-                if (res.status === 422) {
-                    const j = await res.json();
-                    err.textContent = Object.values(j.errors).map(a => a[0]).join(' ');
-                    return;
-                }
-                if (!res.ok) { err.textContent = 'Failed to save.'; return; }
-                const prevId = tr.dataset.id;
-                const params = new URLSearchParams({
-                    search: state.search, category_id: state.category_id, sort: state.sort, dir: state.dir, page: state.page, perPage: state.perPage
-                });
-                const html = await (await fetch(`/products/partial?${params.toString()}`, { headers: { 'Accept': 'text/html' } })).text();
-                const tmp = document.createElement('div'); tmp.innerHTML = html;
-                const newRow = tmp.querySelector(`tr[data-id="${prevId}"]`);
-                if (newRow) tr.replaceWith(newRow);
-                wireRowActions();
-                toast('Updated');
-            };
-        };
-    });
+  // Open modal (unchanged)
+  qsa('[data-edit]').forEach(btn => {
+    btn.onclick = () => {
+      const tr = btn.closest('tr');
+      const id = tr.dataset.id;
+      fillForm({
+        id,
+        name: qs('[data-view="name"]', tr).textContent.trim(),
+        price: qs('[data-view="price"]', tr).textContent.trim(),
+        category_id: (__CATEGORIES__ || []).find(c => c.name === qs('[data-view="category"]', tr).textContent.trim())?.id ?? '',
+        stock: qs('[data-view="stock"]', tr).textContent.trim(),
+        status: qs('[data-view="status"]', tr)?.textContent.trim() || tr.querySelector('[data-view="status"] .badge')?.textContent.trim(),
+      });
+      openModal('productModal');
+    };
+  });
+
+  // Delete (unchanged)
+  qsa('[data-delete]').forEach(btn => {
+    btn.onclick = () => {
+      const tr = btn.closest('tr');
+      state.deleteId = tr.dataset.id;
+      openModal('confirmModal');
+    };
+  });
+
+  // Inline edit: show inputs in-place and swap action buttons
+  qsa('[data-inline-edit]').forEach(btn => {
+    btn.onclick = () => {
+      const tr = btn.closest('tr');
+      tr.classList.add('editing', 'row-edit');
+
+      const firstEdit = tr.querySelector('.cell-edit input, .cell-edit select');
+      if (firstEdit) firstEdit.focus();
+
+      const cancel = tr.querySelector('[data-inline-cancel]');
+      const save = tr.querySelector('[data-inline-save]');
+      const err = tr.querySelector('[data-inline-error]');
+      const form = tr.querySelector('[data-inline-form]');
+
+      cancel.onclick = (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        tr.classList.remove('editing', 'row-edit');
+      };
+
+      save.onclick = async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+
+        const fd = new FormData(form); // collects inputs with form="inline-form-{{id}}"
+        fd.append('_method', 'PUT');
+
+        const res = await fetch(`/products/${tr.dataset.id}`, {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': csrf(), 'Accept': 'application/json' },
+          body: fd
+        });
+
+        if (res.status === 422) {
+          const j = await res.json();
+          err.textContent = Object.values(j.errors).map(a => a[0]).join(' ');
+          return;
+        }
+        if (!res.ok) { err.textContent = 'Failed to save.'; return; }
+
+        // Refresh this row only
+        const prevId = tr.dataset.id;
+        const params = new URLSearchParams({
+          search: state.search, category_id: state.category_id, sort: state.sort, dir: state.dir, page: state.page, perPage: state.perPage
+        });
+        const html = await (await fetch(`/products/partial?${params.toString()}`, { headers: { 'Accept': 'text/html' } })).text();
+        const tmp = document.createElement('div'); tmp.innerHTML = html;
+        const newRow = tmp.querySelector(`tr[data-id="${prevId}"]`);
+        if (newRow) tr.replaceWith(newRow);
+        wireRowActions();
+        toast('Updated');
+      };
+    };
+  });
 }
 
 async function init() {

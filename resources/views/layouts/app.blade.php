@@ -25,6 +25,19 @@
         .toast { position: fixed; right: 1rem; bottom: 1rem; background: #111; color: #fff; padding: .75rem 1rem; border-radius: 6px; opacity: 0; transform: translateY(10px); transition: all .2s; }
         .toast.show { opacity: 1; transform: translateY(0); }
         .badge { display:inline-block; padding: .1rem .4rem; border-radius: 4px; background:#eef; }
+
+        /* Inline edit toggles */
+        .cell-view { display: block; }
+        .cell-edit { display: none; }
+        tr.editing .cell-view { display: none; }
+        tr.editing .cell-edit { display: block; }
+        tr.editing input.input, tr.editing select.input { width: 100%; background: #fffbe6; }
+
+        .actions-view { display: inline-flex; gap: .25rem; }
+        .actions-edit { display: none; gap: .25rem; }
+        tr.editing .actions-view { display: none; }
+        tr.editing .actions-edit { display: inline-flex; }
+        .row-edit { background: #fffbe6; } /* optional row highlight */
     </style>
 </head>
 <body>
