@@ -16,8 +16,9 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: .5rem; border-bottom: 1px solid #eee; }
         th { text-align: left; }
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; }
-        .modal { background: white; width: 100%; max-width: 640px; margin: 5vh auto; border-radius: 8px; overflow: hidden; }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 900; }
+        .modal { background: white; width: 100%; max-width: 640px; margin: 0 auto; border-radius: 8px; overflow: hidden;
+                 position: fixed; inset: 10vh 0 auto 0; z-index: 1000; }
         .modal.open + .modal-backdrop, .modal-backdrop.open { display: block; }
         .row-edit { background: #fffbe6; }
         .error { color: #b91c1c; font-size: .85rem; }
